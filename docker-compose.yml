@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:17
+    container_name: studyrats-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: studyrats
+      POSTGRES_USER: studyrats
+      POSTGRES_PASSWORD: studyrats_dev   # só para desenvolvimento local
+    ports:
+      - "127.0.0.1:5433:5432"            # 5433 para não colidir com um Postgres local
+    volumes:
+      - studyrats-pgdata:/var/lib/postgresql/data
+
+volumes:
+  studyrats-pgdata:
