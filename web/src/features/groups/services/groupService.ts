@@ -1,6 +1,5 @@
 import { http } from '@/shared/services/http'
 import type {
-  CalendarDay,
   Challenge,
   CreateChallengeRequest,
   CreateGroupRequest,
@@ -39,11 +38,6 @@ export const groupService = {
 
   async logs(id: string, skip = 0, take = 20): Promise<StudyLog[]> {
     const { data } = await http.get<StudyLog[]>(`/api/groups/${id}/logs`, { params: { skip, take } })
-    return data
-  },
-
-  async calendar(id: string, month: string, userId?: string): Promise<CalendarDay[]> {
-    const { data } = await http.get<CalendarDay[]>(`/api/groups/${id}/calendar`, { params: { month, userId } })
     return data
   },
 

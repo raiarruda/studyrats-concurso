@@ -60,7 +60,9 @@ cd web && npm run share                                                         
 - **Semana ativa**: semana (segunda a domingo) com pelo menos N dias estudados; N (1 a 7, padrão 3) é definido no
   grupo. A sequência de semanas ativas não quebra enquanto a semana em andamento ainda pode atingir o mínimo.
 - O ranking mostra dias ativos (padrão, desempate por tempo e depois por questões), semanas ativas, questões,
-  % de acerto, tempo e dias seguidos. O calendário mostra a foto de cada dia estudado.
+  % de acerto, tempo e dias seguidos.
+- **Perfil** (toque no nome de alguém): estatísticas e calendário com a foto de cada dia estudado, somando todos
+  os grupos da pessoa. Ao ver outra pessoa, só aparecem registros de grupos que vocês têm em comum.
 - As métricas não podem ser alteradas depois da criação (não existe endpoint de edição).
 - **A foto é sempre obrigatória.** O servidor confere os bytes (JPEG/PNG/WebP), não o Content-Type.
 - O registro só aceita campos das métricas ativas do grupo; acertos nunca passam do total de questões.

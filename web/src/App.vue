@@ -15,7 +15,7 @@ async function logout() {
   <header v-if="auth.isAuthenticated" class="topbar">
     <RouterLink to="/" class="brand">📚 StudyRats</RouterLink>
     <span class="who">
-      {{ auth.user?.name }}
+      <RouterLink to="/profile" class="name-link" aria-label="Meu perfil">👤 {{ auth.user?.name }}</RouterLink>
       <button class="link" @click="logout">Sair</button>
     </span>
   </header>

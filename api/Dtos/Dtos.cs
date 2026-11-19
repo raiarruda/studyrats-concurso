@@ -51,3 +51,12 @@ public record RankingEntryDto(
 
 /// <summary>Um dia com estudo no calendário: foto do registro mais recente e totais das métricas do grupo.</summary>
 public record CalendarDayDto(DateOnly Date, int LogsCount, string PhotoUrl, int? Questions, int? Minutes);
+
+/// <summary>
+/// Perfil de uma pessoa: estatísticas de todos os registros visíveis ao visitante (grupos em comum)
+/// e os dias do mês pedido para o calendário. Métrica sem nenhum registro vem como null.
+/// </summary>
+public record ProfileDto(
+    Guid UserId, string Name, bool IsMe,
+    int TotalLogs, int ActiveDays, int? TotalMinutes, int? TotalQuestions, int CurrentStreak,
+    DateOnly? FirstActiveDate, List<CalendarDayDto> Days);

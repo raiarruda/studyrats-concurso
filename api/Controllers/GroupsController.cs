@@ -133,41 +133,6 @@ public class GroupsController(AppDbContext db, AppClock clock, RankingService ra
             .ToListAsync(ct);
     }
 
-    /// <summary>Dias com estudo de um membro no mês (AAAA-MM). Sem userId, é o calendário de quem pediu.</summary>
-    [HttpGet("{id:guid}/calendar")]
-    public async Task<ActionResult<List<CalendarDayDto>>> Calendar(
-        Guid id, string month, Guid? userId, CancellationToken ct)
-    {
-        var group = await FindMyGroup(id, ct);
-        if (group is null) return NotFound();
-
-        if (!DateOnly.TryParseExact(month + "-01", "yyyy-MM-dd", out var start))
-            return Fail(400, "Mês inválido. Use o formato AAAA-MM.");
-        var end = start.AddMonths(1);
-
-        // Só dá para ver o calendário de quem é membro deste mesmo grupo (as fotos já estão no feed dele).
-        var target = userId ?? UserId;
-        if (!await db.Members.AnyAsync(m => m.GroupId == id && m.UserId == target, ct))
-            return NotFound();
-
-        var logs = await db.StudyLogs.AsNoTracking()
-            .Where(l => l.GroupId == id && l.UserId == target && l.Date >= start && l.Date < end)
-            .OrderByDescending(l => l.CreatedAt)
-            .Select(l => new { l.Date, l.PhotoFileName, l.QuestionsAnswered, l.StudyMinutes })
-            .ToListAsync(ct);
-
-        return logs
-            .GroupBy(l => l.Date)
-            .OrderBy(g => g.Key)
-            .Select(g => new CalendarDayDto(
-                g.Key,
-                g.Count(),
-                "/uploads/" + g.First().PhotoFileName, // o mais recente do dia (lista já vem ordenada)
-                group.TrackQuestions ? g.Sum(l => l.QuestionsAnswered ?? 0) : null,
-                group.TrackTime ? g.Sum(l => l.StudyMinutes ?? 0) : null))
-            .ToList();
-    }
-
     [HttpPost("{id:guid}/logs")]
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<ActionResult<LogDto>> CreateLog(

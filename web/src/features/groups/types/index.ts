@@ -58,14 +58,6 @@ export interface RankingEntry {
   bestWeekStreak: number
 }
 
-export interface CalendarDay {
-  date: string
-  logsCount: number
-  photoUrl: string
-  questions: number | null
-  minutes: number | null
-}
-
 export interface CreateGroupRequest {
   name: string
   trackQuestions: boolean

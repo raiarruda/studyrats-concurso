@@ -17,7 +17,9 @@ const emit = defineEmits<{
 <template>
   <article class="card log">
     <div class="row between">
-      <strong>{{ log.userName }}</strong>
+      <RouterLink :to="`/profile/${log.userId}`" class="name-link">
+        <strong>{{ log.userName }}</strong>
+      </RouterLink>
       <span class="muted">{{ formatDate(log.date) }}</span>
     </div>
 

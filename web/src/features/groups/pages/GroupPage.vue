@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '@/features/auth/stores/authStore'
 import { apiErrorMessage } from '@/shared/utils/apiError'
-import { currentMonth, formatDate, localDate } from '@/shared/utils/format'
-import CalendarMonth from '../components/CalendarMonth.vue'
+import { formatDate, localDate } from '@/shared/utils/format'
 import ChallengeProgress from '../components/ChallengeProgress.vue'
 import LogCard from '../components/LogCard.vue'
 import RankingList from '../components/RankingList.vue'
 import { groupService } from '../services/groupService'
-import type { CalendarDay, Challenge, GroupDetail, RankingEntry, StudyLog } from '../types'
+import type { Challenge, GroupDetail, RankingEntry, StudyLog } from '../types'
 
 const props = defineProps<{ id: string }>()
 
@@ -21,7 +20,7 @@ const logs = ref<StudyLog[]>([])
 const challenges = ref<Challenge[]>([])
 const hasMore = ref(false)
 
-const tab = ref<'ranking' | 'challenges' | 'calendar' | 'feed'>('ranking')
+const tab = ref<'ranking' | 'challenges' | 'feed'>('ranking')
 const loading = ref(true)
 const loadingMore = ref(false)
 const error = ref<string | null>(null)
@@ -36,40 +35,6 @@ const activeChallenge = computed(() => {
     .sort((a, b) => a.examDate.localeCompare(b.examDate))[0]
 })
 
-// ---------- calendário ----------
-const calUser = ref(auth.user?.id ?? '')
-const calMonth = ref(currentMonth())
-const calDays = ref<CalendarDay[]>([])
-const calLoading = ref(false)
-const calError = ref<string | null>(null)
-let calRequest = 0 // descarta respostas antigas quando o usuário troca de mês/pessoa rápido
-
-// O grupo não tem data de início: o calendário vai até onde pode existir registro (criação - 3 dias de retroativo).
-const calMin = computed(() => {
-  const d = detail.value ? new Date(detail.value.group.createdAt) : new Date()
-  d.setDate(d.getDate() - 3)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-})
-const calMax = currentMonth()
-
-async function loadCalendar() {
-  if (tab.value !== 'calendar' || !detail.value) return
-  const request = ++calRequest
-  calLoading.value = true
-  calError.value = null
-  try {
-    const days = await groupService.calendar(props.id, calMonth.value, calUser.value)
-    if (request === calRequest) calDays.value = days
-  } catch (e) {
-    if (request === calRequest) calError.value = apiErrorMessage(e, 'Não foi possível carregar o calendário.')
-  } finally {
-    if (request === calRequest) calLoading.value = false
-  }
-}
-
-watch([tab, calMonth, calUser], loadCalendar)
-
-// ---------- dados do grupo ----------
 async function load() {
   loading.value = true
   error.value = null
@@ -176,7 +141,6 @@ onMounted(load)
       <div class="tabs" role="tablist">
         <button role="tab" :class="{ active: tab === 'ranking' }" @click="tab = 'ranking'">Ranking</button>
         <button role="tab" :class="{ active: tab === 'challenges' }" @click="tab = 'challenges'">Desafios</button>
-        <button role="tab" :class="{ active: tab === 'calendar' }" @click="tab = 'calendar'">Calendário</button>
         <button role="tab" :class="{ active: tab === 'feed' }" @click="tab = 'feed'">Feed</button>
       </div>
 
@@ -210,27 +174,6 @@ onMounted(load)
           <span class="muted">{{ formatDate(c.startDate) }} → prova em {{ formatDate(c.examDate) }}</span>
           <ChallengeProgress :start-date="c.startDate" :exam-date="c.examDate" />
         </RouterLink>
-      </div>
-
-      <div v-else-if="tab === 'calendar'" class="stack">
-        <label>
-          Calendário de
-          <select v-model="calUser">
-            <option v-for="m in detail.members" :key="m.userId" :value="m.userId">
-              {{ m.userId === auth.user?.id ? `${m.name} (você)` : m.name }}
-            </option>
-          </select>
-        </label>
-
-        <p v-if="calError" class="error" role="alert">{{ calError }}</p>
-
-        <CalendarMonth
-          v-model:month="calMonth"
-          :days="calDays"
-          :min-month="calMin"
-          :max-month="calMax"
-          :loading="calLoading"
-        />
       </div>
 
       <div v-else class="stack">

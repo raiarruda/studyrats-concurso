@@ -41,6 +41,13 @@ export const router = createRouter({
       meta: { requiresAuth: true },
       props: true,
     },
+    {
+      // /profile = meu perfil; /profile/:userId = perfil de outra pessoa (só o que vocês compartilham).
+      path: '/profile/:userId?',
+      component: () => import('@/features/profile/pages/ProfilePage.vue'),
+      meta: { requiresAuth: true },
+      props: true,
+    },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })

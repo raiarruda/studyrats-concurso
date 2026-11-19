@@ -70,7 +70,10 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
       <li v-for="(e, i) in sorted" :key="e.userId" class="card" :class="{ me: e.userId === currentUserId }">
         <span class="pos">{{ medal(i) }}</span>
         <div class="grow">
-          <strong>{{ e.name }}<span v-if="e.userId === currentUserId" class="muted"> (você)</span></strong>
+          <RouterLink :to="`/profile/${e.userId}`" class="name-link">
+            <strong>{{ e.name }}</strong>
+          </RouterLink>
+          <span v-if="e.userId === currentUserId" class="muted"> (você)</span>
           <div class="stats">
             <span>📅 <b>{{ e.daysStudied }}</b> {{ e.daysStudied === 1 ? 'dia ativo' : 'dias ativos' }}</span>
             <span :title="`Melhor sequência: ${plural(e.bestWeekStreak, 'semana', 'semanas')}`">
