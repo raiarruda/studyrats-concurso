@@ -59,6 +59,16 @@ cd web && npm run share                                                         
 - Ao criar o grupo: pelo menos uma métrica (questões, acertos, tempo). **Acertos exigem questões.**
 - **Semana ativa**: semana (segunda a domingo) com pelo menos N dias estudados; N (1 a 7, padrão 3) é definido no
   grupo. A sequência de semanas ativas não quebra enquanto a semana em andamento ainda pode atingir o mínimo.
+- **Bolão simulado** (opcional, por desafio): quem fica abaixo do mínimo de dias numa semana "paga" a multa
+  definida na criação (R$ 1 a R$ 1.000 por semana), e o valor arrecadado é dividido entre 2 ou 3 colocados
+  (padrão 70/30 ou 60/30/10; o que sobrar vai para o caixa do grupo). O app **só calcula e mostra: nunca
+  movimenta dinheiro**. Regras:
+  - Só contam semanas inteiras (segunda a domingo) dentro do desafio e depois de a pessoa entrar no bolão.
+  - Cada pessoa escolhe entrar. Dá para sair só enquanto nenhuma semana sua foi contabilizada.
+  - Quem ganha: ranking de dias ativos do desafio (desempate por tempo e depois por questões), só entre quem
+    está no bolão. Empate total divide o prêmio das posições empatadas.
+  - As regras não mudam depois que o desafio é criado. Nada é gravado como lançamento: tudo é recalculado dos
+    registros de estudo (apagar um registro refaz a conta).
 - O ranking mostra dias ativos (padrão, desempate por tempo e depois por questões), semanas ativas, questões,
   % de acerto, tempo e dias seguidos.
 - **Perfil** (toque no nome de alguém): estatísticas e calendário com a foto de cada dia estudado, somando todos

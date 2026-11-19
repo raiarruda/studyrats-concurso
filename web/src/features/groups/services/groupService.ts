@@ -1,5 +1,6 @@
 import { http } from '@/shared/services/http'
 import type {
+  Bolao,
   Challenge,
   CreateChallengeRequest,
   CreateGroupRequest,
@@ -79,6 +80,22 @@ export const groupService = {
   async challengeRanking(groupId: string, id: string): Promise<RankingEntry[]> {
     const { data } = await http.get<RankingEntry[]>(`/api/groups/${groupId}/challenges/${id}/ranking`)
     return data
+  },
+
+  // ---------- bolão simulado: o app só calcula, nunca movimenta dinheiro ----------
+
+  async bolao(groupId: string, id: string): Promise<Bolao> {
+    const { data } = await http.get<Bolao>(`/api/groups/${groupId}/challenges/${id}/bolao`)
+    return data
+  },
+
+  async joinBolao(groupId: string, id: string): Promise<Bolao> {
+    const { data } = await http.post<Bolao>(`/api/groups/${groupId}/challenges/${id}/bolao/join`)
+    return data
+  },
+
+  async leaveBolao(groupId: string, id: string): Promise<void> {
+    await http.delete(`/api/groups/${groupId}/challenges/${id}/bolao/join`)
   },
 
   async deleteChallenge(groupId: string, id: string): Promise<void> {

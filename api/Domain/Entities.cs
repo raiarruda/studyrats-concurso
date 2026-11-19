@@ -41,7 +41,25 @@ public class Challenge
     public string Name { get; set; } = "";          // ex.: "Dataprev 2026"
     public DateOnly StartDate { get; set; }
     public DateOnly ExamDate { get; set; }
+
+    // Bolão (simulado): multa por semana falhada, em centavos. null = o desafio não tem bolão.
+    // O app só calcula e mostra os valores: nunca movimenta dinheiro.
+    public int? PenaltyCents { get; set; }
+
+    /// <summary>Porcentagem do valor arrecadado para o 1º, 2º (e 3º) lugar. A soma é no máximo 100.</summary>
+    public int[] PrizePercents { get; set; } = [];
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>Quem escolheu participar do bolão de um desafio. Só conta semanas inteiras a partir de <see cref="JoinedOn"/>.</summary>
+public class ChallengeBettor
+{
+    public Guid ChallengeId { get; set; }
+    public Guid UserId { get; set; }
+    public DateOnly JoinedOn { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public User User { get; set; } = null!;
 }
 
 public enum MemberRole { Member = 0, Owner = 1 }

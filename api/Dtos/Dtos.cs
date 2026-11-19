@@ -32,12 +32,28 @@ public record MemberDto(Guid UserId, string Name, bool IsOwner);
 
 public record GroupDetailDto(GroupSummaryDto Group, List<MemberDto> Members);
 
+/// <summary>Bolão (simulado) opcional do desafio: valores em centavos e porcentagens do prêmio.</summary>
 public record CreateChallengeRequest(
     [Required, StringLength(80, MinimumLength = 2)] string Name,
     DateOnly StartDate,
-    DateOnly ExamDate);
+    DateOnly ExamDate,
+    [Range(1, 100_000)] int? PenaltyCents = null,
+    List<int>? PrizePercents = null);
 
-public record ChallengeDto(Guid Id, Guid GroupId, string Name, DateOnly StartDate, DateOnly ExamDate);
+public record BetConfigDto(int PenaltyCents, List<int> PrizePercents);
+
+public record ChallengeDto(Guid Id, Guid GroupId, string Name, DateOnly StartDate, DateOnly ExamDate, BetConfigDto? Bet);
+
+/// <summary>Semanas: "ok", "failed", "open" (em andamento), "future" ou "na" (antes de entrar no bolão).</summary>
+public record BolaoMemberDto(
+    Guid UserId, string Name, DateOnly JoinedOn, int Position,
+    int FailedWeeks, int PenaltyCents, int PrizeCents, int NetCents, List<string> Weeks);
+
+public record BolaoDto(
+    int PenaltyCents, List<int> PrizePercents, bool IsFinal,
+    bool IAmIn, bool CanJoin, bool CanLeave,
+    int PotCents, int CaixaCents,
+    List<DateOnly> Weeks, List<BolaoMemberDto> Members);
 
 public record LogDto(
     Guid Id, Guid UserId, string UserName, DateOnly Date, string PhotoUrl,

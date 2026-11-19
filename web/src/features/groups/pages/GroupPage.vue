@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '@/features/auth/stores/authStore'
 import { apiErrorMessage } from '@/shared/utils/apiError'
-import { formatDate, localDate } from '@/shared/utils/format'
+import { formatDate, formatMoney, localDate } from '@/shared/utils/format'
 import ChallengeProgress from '../components/ChallengeProgress.vue'
 import LogCard from '../components/LogCard.vue'
 import RankingList from '../components/RankingList.vue'
@@ -172,6 +172,9 @@ onMounted(load)
         >
           <strong>{{ c.name }}</strong>
           <span class="muted">{{ formatDate(c.startDate) }} → prova em {{ formatDate(c.examDate) }}</span>
+          <span v-if="c.bet" class="badge" style="align-self: flex-start">
+            💰 Bolão · {{ formatMoney(c.bet.penaltyCents) }} por semana falhada
+          </span>
           <ChallengeProgress :start-date="c.startDate" :exam-date="c.examDate" />
         </RouterLink>
       </div>

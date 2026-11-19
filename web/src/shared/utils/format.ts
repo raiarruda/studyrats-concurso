@@ -41,6 +41,14 @@ export function monthLabel(month: string): string {
   return new Date(y!, m! - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
 }
 
+/** 1000 -> "R$ 10,00". Com `signed`, mostra "+R$ 8,00" / "−R$ 4,00" (saldos). Valores simulados. */
+export function formatMoney(cents: number, signed = false): string {
+  const text = (Math.abs(cents) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  if (!signed) return cents < 0 ? `−${text}` : text
+  if (cents === 0) return text
+  return `${cents > 0 ? '+' : '−'}${text}`
+}
+
 export function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 }

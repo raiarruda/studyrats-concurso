@@ -33,6 +33,7 @@ builder.Services.AddSingleton<AppClock>();
 builder.Services.AddSingleton<IPhotoStorage, LocalPhotoStorage>();
 builder.Services.AddSingleton<TokenService>();
 builder.Services.AddScoped<RankingService>();
+builder.Services.AddScoped<BolaoService>();
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

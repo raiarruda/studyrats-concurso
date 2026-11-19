@@ -42,6 +42,13 @@ namespace StudyRats.Api.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
 
+                    b.Property<int?>("PenaltyCents")
+                        .HasColumnType("integer");
+
+                    b.PrimitiveCollection<int[]>("PrizePercents")
+                        .IsRequired()
+                        .HasColumnType("integer[]");
+
                     b.Property<DateOnly>("StartDate")
                         .HasColumnType("date");
 
@@ -52,7 +59,30 @@ namespace StudyRats.Api.Migrations
                     b.ToTable("Challenges", t =>
                         {
                             t.HasCheckConstraint("ck_challenge_dates", "\"StartDate\" <= \"ExamDate\"");
+
+                            t.HasCheckConstraint("ck_challenge_penalty", "\"PenaltyCents\" IS NULL OR \"PenaltyCents\" > 0");
                         });
+                });
+
+            modelBuilder.Entity("StudyRats.Api.Domain.ChallengeBettor", b =>
+                {
+                    b.Property<Guid>("ChallengeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("JoinedOn")
+                        .HasColumnType("date");
+
+                    b.HasKey("ChallengeId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ChallengeBettors");
                 });
 
             modelBuilder.Entity("StudyRats.Api.Domain.Group", b =>
@@ -215,6 +245,23 @@ namespace StudyRats.Api.Migrations
                         .HasForeignKey("GroupId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("StudyRats.Api.Domain.ChallengeBettor", b =>
+                {
+                    b.HasOne("StudyRats.Api.Domain.Challenge", null)
+                        .WithMany()
+                        .HasForeignKey("ChallengeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StudyRats.Api.Domain.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("StudyRats.Api.Domain.Member", b =>

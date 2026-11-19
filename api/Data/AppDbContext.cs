@@ -10,6 +10,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Member> Members => Set<Member>();
     public DbSet<StudyLog> StudyLogs => Set<StudyLog>();
     public DbSet<Challenge> Challenges => Set<Challenge>();
+    public DbSet<ChallengeBettor> ChallengeBettors => Set<ChallengeBettor>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -34,7 +35,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(x => x.GroupId);
             e.Property(x => x.Name).HasMaxLength(80);
             e.HasOne<Group>().WithMany().HasForeignKey(x => x.GroupId).OnDelete(DeleteBehavior.Cascade);
-            e.ToTable(t => t.HasCheckConstraint("ck_challenge_dates", "\"StartDate\" <= \"ExamDate\""));
+            e.ToTable(t =>
+            {
+                t.HasCheckConstraint("ck_challenge_dates", "\"StartDate\" <= \"ExamDate\"");
+                t.HasCheckConstraint("ck_challenge_penalty", "\"PenaltyCents\" IS NULL OR \"PenaltyCents\" > 0");
+            });
+        });
+
+        b.Entity<ChallengeBettor>(e =>
+        {
+            e.HasKey(x => new { x.ChallengeId, x.UserId });
+            e.HasOne<Challenge>().WithMany().HasForeignKey(x => x.ChallengeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<Member>(e =>

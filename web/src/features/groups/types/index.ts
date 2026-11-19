@@ -22,6 +22,12 @@ export interface GroupDetail {
   members: Member[]
 }
 
+/** Bolão simulado do desafio: multa por semana falhada (centavos) e % do prêmio por colocação. */
+export interface BetConfig {
+  penaltyCents: number
+  prizePercents: number[]
+}
+
 /** Preparação do grupo para um edital, com data de prova. */
 export interface Challenge {
   id: string
@@ -29,6 +35,34 @@ export interface Challenge {
   name: string
   startDate: string
   examDate: string
+  bet: BetConfig | null
+}
+
+export type WeekStatus = 'ok' | 'failed' | 'open' | 'future' | 'na'
+
+export interface BolaoMember {
+  userId: string
+  name: string
+  joinedOn: string
+  position: number
+  failedWeeks: number
+  penaltyCents: number
+  prizeCents: number
+  netCents: number
+  weeks: WeekStatus[]
+}
+
+export interface Bolao {
+  penaltyCents: number
+  prizePercents: number[]
+  isFinal: boolean
+  iAmIn: boolean
+  canJoin: boolean
+  canLeave: boolean
+  potCents: number
+  caixaCents: number
+  weeks: string[]
+  members: BolaoMember[]
 }
 
 export interface StudyLog {
@@ -70,6 +104,8 @@ export interface CreateChallengeRequest {
   name: string
   startDate: string
   examDate: string
+  penaltyCents?: number
+  prizePercents?: number[]
 }
 
 export interface CreateLogInput {

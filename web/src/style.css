@@ -134,6 +134,9 @@ a.button {
 .bar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
 .bar .fill { height: 100%; background: var(--primary); border-radius: 99px; transition: width 0.3s; }
 
+.divider { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
+.week-row { display: flex; flex-wrap: wrap; gap: 4px; font-size: 1.05rem; line-height: 1.2; }
+
 .name-link { color: inherit; text-decoration: none; }
 .name-link:hover { text-decoration: underline; }
 
