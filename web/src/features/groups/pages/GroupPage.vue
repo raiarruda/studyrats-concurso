@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '@/features/auth/stores/authStore'
 import { apiErrorMessage } from '@/shared/utils/apiError'
-import { formatDate } from '@/shared/utils/format'
+import { currentMonth, formatDate, localDate } from '@/shared/utils/format'
+import CalendarMonth from '../components/CalendarMonth.vue'
+import ChallengeProgress from '../components/ChallengeProgress.vue'
 import LogCard from '../components/LogCard.vue'
 import RankingList from '../components/RankingList.vue'
 import { groupService } from '../services/groupService'
-import type { GroupDetail, RankingEntry, StudyLog } from '../types'
+import type { CalendarDay, Challenge, GroupDetail, RankingEntry, StudyLog } from '../types'
 
 const props = defineProps<{ id: string }>()
 
@@ -16,27 +18,72 @@ const auth = useAuthStore()
 const detail = ref<GroupDetail | null>(null)
 const ranking = ref<RankingEntry[]>([])
 const logs = ref<StudyLog[]>([])
+const challenges = ref<Challenge[]>([])
 const hasMore = ref(false)
 
-const tab = ref<'ranking' | 'feed'>('ranking')
+const tab = ref<'ranking' | 'challenges' | 'calendar' | 'feed'>('ranking')
 const loading = ref(true)
 const loadingMore = ref(false)
 const error = ref<string | null>(null)
 const deletingId = ref<string | null>(null)
 const copied = ref(false)
 
+// Desafio em andamento (se houver mais de um, o que tem a prova mais próxima).
+const activeChallenge = computed(() => {
+  const today = localDate()
+  return challenges.value
+    .filter((c) => c.startDate <= today && today <= c.examDate)
+    .sort((a, b) => a.examDate.localeCompare(b.examDate))[0]
+})
+
+// ---------- calendário ----------
+const calUser = ref(auth.user?.id ?? '')
+const calMonth = ref(currentMonth())
+const calDays = ref<CalendarDay[]>([])
+const calLoading = ref(false)
+const calError = ref<string | null>(null)
+let calRequest = 0 // descarta respostas antigas quando o usuário troca de mês/pessoa rápido
+
+// O grupo não tem data de início: o calendário vai até onde pode existir registro (criação - 3 dias de retroativo).
+const calMin = computed(() => {
+  const d = detail.value ? new Date(detail.value.group.createdAt) : new Date()
+  d.setDate(d.getDate() - 3)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+})
+const calMax = currentMonth()
+
+async function loadCalendar() {
+  if (tab.value !== 'calendar' || !detail.value) return
+  const request = ++calRequest
+  calLoading.value = true
+  calError.value = null
+  try {
+    const days = await groupService.calendar(props.id, calMonth.value, calUser.value)
+    if (request === calRequest) calDays.value = days
+  } catch (e) {
+    if (request === calRequest) calError.value = apiErrorMessage(e, 'Não foi possível carregar o calendário.')
+  } finally {
+    if (request === calRequest) calLoading.value = false
+  }
+}
+
+watch([tab, calMonth, calUser], loadCalendar)
+
+// ---------- dados do grupo ----------
 async function load() {
   loading.value = true
   error.value = null
   try {
-    const [d, r, l] = await Promise.all([
+    const [d, r, l, c] = await Promise.all([
       groupService.get(props.id),
       groupService.ranking(props.id),
       groupService.logs(props.id, 0, PAGE_SIZE),
+      groupService.challenges(props.id),
     ])
     detail.value = d
     ranking.value = r
     logs.value = l
+    challenges.value = c
     hasMore.value = l.length === PAGE_SIZE
   } catch (e) {
     error.value = apiErrorMessage(e, 'Não foi possível carregar o grupo.')
@@ -101,9 +148,17 @@ onMounted(load)
       <header class="stack" style="margin-top: 8px">
         <h1>{{ detail.group.name }}</h1>
         <span class="muted">
-          {{ formatDate(detail.group.startDate) }} → {{ formatDate(detail.group.endDate) }} ·
-          {{ detail.group.memberCount }} {{ detail.group.memberCount === 1 ? 'pessoa' : 'pessoas' }}
+          {{ detail.group.memberCount }} {{ detail.group.memberCount === 1 ? 'pessoa' : 'pessoas' }} ·
+          semana ativa = {{ detail.group.minDaysPerWeek }}
+          {{ detail.group.minDaysPerWeek === 1 ? 'dia' : 'dias' }} de estudo
         </span>
+
+        <RouterLink v-if="activeChallenge" :to="`/groups/${id}/challenges/${activeChallenge.id}`" class="card stack challenge-banner">
+          <strong>🎯 {{ activeChallenge.name }}</strong>
+          <ChallengeProgress :start-date="activeChallenge.startDate" :exam-date="activeChallenge.examDate" />
+          <span class="muted">Ver ranking do desafio →</span>
+        </RouterLink>
+
         <div class="badges">
           <span v-if="detail.group.trackQuestions" class="badge">Questões</span>
           <span v-if="detail.group.trackCorrect" class="badge">Acertos</span>
@@ -120,6 +175,8 @@ onMounted(load)
 
       <div class="tabs" role="tablist">
         <button role="tab" :class="{ active: tab === 'ranking' }" @click="tab = 'ranking'">Ranking</button>
+        <button role="tab" :class="{ active: tab === 'challenges' }" @click="tab = 'challenges'">Desafios</button>
+        <button role="tab" :class="{ active: tab === 'calendar' }" @click="tab = 'calendar'">Calendário</button>
         <button role="tab" :class="{ active: tab === 'feed' }" @click="tab = 'feed'">Feed</button>
       </div>
 
@@ -129,6 +186,52 @@ onMounted(load)
         :entries="ranking"
         :current-user-id="auth.user?.id ?? ''"
       />
+
+      <div v-else-if="tab === 'challenges'" class="stack">
+        <p class="muted" style="margin: 0">
+          Um desafio é a preparação do grupo para um edital, com data de prova e ranking próprio.
+        </p>
+
+        <RouterLink v-if="detail.group.isOwner" :to="`/groups/${id}/challenges/new`" class="button">
+          + Novo desafio
+        </RouterLink>
+
+        <p v-if="challenges.length === 0" class="muted">
+          Nenhum desafio ainda.{{ detail.group.isOwner ? '' : ' Quem criou o grupo pode criar o primeiro.' }}
+        </p>
+
+        <RouterLink
+          v-for="c in challenges"
+          :key="c.id"
+          :to="`/groups/${id}/challenges/${c.id}`"
+          class="card stack challenge-banner"
+        >
+          <strong>{{ c.name }}</strong>
+          <span class="muted">{{ formatDate(c.startDate) }} → prova em {{ formatDate(c.examDate) }}</span>
+          <ChallengeProgress :start-date="c.startDate" :exam-date="c.examDate" />
+        </RouterLink>
+      </div>
+
+      <div v-else-if="tab === 'calendar'" class="stack">
+        <label>
+          Calendário de
+          <select v-model="calUser">
+            <option v-for="m in detail.members" :key="m.userId" :value="m.userId">
+              {{ m.userId === auth.user?.id ? `${m.name} (você)` : m.name }}
+            </option>
+          </select>
+        </label>
+
+        <p v-if="calError" class="error" role="alert">{{ calError }}</p>
+
+        <CalendarMonth
+          v-model:month="calMonth"
+          :days="calDays"
+          :min-month="calMin"
+          :max-month="calMax"
+          :loading="calLoading"
+        />
+      </div>
 
       <div v-else class="stack">
         <p v-if="logs.length === 0" class="muted">Ninguém registrou estudo ainda. Seja o primeiro! 💪</p>

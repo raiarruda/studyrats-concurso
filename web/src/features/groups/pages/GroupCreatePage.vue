@@ -2,18 +2,16 @@
 import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { apiErrorMessage } from '@/shared/utils/apiError'
-import { localDate } from '@/shared/utils/format'
 import { groupService } from '../services/groupService'
 
 const router = useRouter()
 
 const form = reactive({
   name: '',
-  startDate: localDate(),
-  endDate: '',
   trackQuestions: true,
   trackCorrect: false,
   trackTime: true,
+  minDaysPerWeek: 3,
 })
 
 const loading = ref(false)
@@ -49,23 +47,16 @@ async function submit() {
   <main class="stack">
     <RouterLink to="/">← Voltar</RouterLink>
     <h1>Novo grupo</h1>
+    <p class="muted" style="margin: 0">
+      O grupo é a turma, e não tem data de prova. Quando vocês forem estudar para um edital específico,
+      crie um <b>desafio</b> dentro do grupo.
+    </p>
 
     <form class="card stack" @submit.prevent="submit">
       <label>
         Nome do grupo
-        <input v-model="form.name" maxlength="80" minlength="2" placeholder="Ex.: Concurso 2026" required />
+        <input v-model="form.name" maxlength="80" minlength="2" placeholder="Ex.: Turma da madrugada" required />
       </label>
-
-      <div class="row">
-        <label class="grow">
-          Início
-          <input v-model="form.startDate" type="date" required />
-        </label>
-        <label class="grow">
-          Fim (data da prova)
-          <input v-model="form.endDate" type="date" :min="form.startDate" required />
-        </label>
-      </div>
 
       <fieldset class="stack" style="border: 0; padding: 0; margin: 0">
         <legend style="font-weight: 600; font-size: 0.9rem; padding: 0; margin-bottom: 8px">
@@ -100,6 +91,18 @@ async function submit() {
           📷 A foto é sempre obrigatória. As métricas não podem ser alteradas depois que o grupo é criado.
         </small>
       </fieldset>
+
+      <label>
+        Semana ativa: mínimo de dias estudados
+        <select v-model.number="form.minDaysPerWeek">
+          <option v-for="n in 7" :key="n" :value="n">
+            {{ n }} {{ n === 1 ? 'dia' : 'dias' }} por semana{{ n === 3 ? ' (padrão)' : '' }}
+          </option>
+        </select>
+        <small class="muted">
+          Uma semana (segunda a domingo) com esse mínimo conta para a sequência de semanas ativas.
+        </small>
+      </label>
 
       <p v-if="error" class="error" role="alert">{{ error }}</p>
 

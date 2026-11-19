@@ -21,6 +21,26 @@ export function localDate(offsetDays = 0): string {
   return `${d.getFullYear()}-${mm}-${dd}`
 }
 
+/** Dias entre duas datas yyyy-MM-dd (b - a). Em UTC, para o horário de verão nunca deslocar um dia. */
+export function daysBetween(a: string, b: string): number {
+  const ms = (iso: string) => {
+    const [y, m, d] = iso.split('-').map(Number)
+    return Date.UTC(y!, m! - 1, d)
+  }
+  return Math.round((ms(b) - ms(a)) / 86_400_000)
+}
+
+/** yyyy-MM do dia de hoje no aparelho. */
+export function currentMonth(): string {
+  return localDate().slice(0, 7)
+}
+
+/** "2026-11" -> "novembro de 2026". */
+export function monthLabel(month: string): string {
+  const [y, m] = month.split('-').map(Number)
+  return new Date(y!, m! - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+}
+
 export function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 }

@@ -2,11 +2,11 @@ export interface GroupSummary {
   id: string
   name: string
   code: string
-  startDate: string
-  endDate: string
   trackQuestions: boolean
   trackCorrect: boolean
   trackTime: boolean
+  minDaysPerWeek: number
+  createdAt: string
   memberCount: number
   isOwner: boolean
 }
@@ -20,6 +20,15 @@ export interface Member {
 export interface GroupDetail {
   group: GroupSummary
   members: Member[]
+}
+
+/** Preparação do grupo para um edital, com data de prova. */
+export interface Challenge {
+  id: string
+  groupId: string
+  name: string
+  startDate: string
+  examDate: string
 }
 
 export interface StudyLog {
@@ -45,15 +54,30 @@ export interface RankingEntry {
   totalMinutes: number | null
   daysStudied: number
   currentStreak: number
+  currentWeekStreak: number
+  bestWeekStreak: number
+}
+
+export interface CalendarDay {
+  date: string
+  logsCount: number
+  photoUrl: string
+  questions: number | null
+  minutes: number | null
 }
 
 export interface CreateGroupRequest {
   name: string
-  startDate: string
-  endDate: string
   trackQuestions: boolean
   trackCorrect: boolean
   trackTime: boolean
+  minDaysPerWeek: number
+}
+
+export interface CreateChallengeRequest {
+  name: string
+  startDate: string
+  examDate: string
 }
 
 export interface CreateLogInput {

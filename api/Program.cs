@@ -32,6 +32,7 @@ builder.Services.AddDbContext<AppDbContext>(o =>
 builder.Services.AddSingleton<AppClock>();
 builder.Services.AddSingleton<IPhotoStorage, LocalPhotoStorage>();
 builder.Services.AddSingleton<TokenService>();
+builder.Services.AddScoped<RankingService>();
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

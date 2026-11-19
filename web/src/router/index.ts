@@ -23,6 +23,19 @@ export const router = createRouter({
       props: true,
     },
     {
+      // Rota estática: o roteador a prefere a ":challengeId", então "new" nunca é lido como id de desafio.
+      path: '/groups/:id/challenges/new',
+      component: () => import('@/features/groups/pages/ChallengeCreatePage.vue'),
+      meta: { requiresAuth: true },
+      props: true,
+    },
+    {
+      path: '/groups/:id/challenges/:challengeId',
+      component: () => import('@/features/groups/pages/ChallengePage.vue'),
+      meta: { requiresAuth: true },
+      props: true,
+    },
+    {
       path: '/groups/:id/log',
       component: () => import('@/features/groups/pages/NewLogPage.vue'),
       meta: { requiresAuth: true },

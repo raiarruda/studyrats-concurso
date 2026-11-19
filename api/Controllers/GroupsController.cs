@@ -12,12 +12,14 @@ namespace StudyRats.Api.Controllers;
 
 [Route("api/groups")]
 [Authorize]
-public class GroupsController(AppDbContext db, AppClock clock) : AppControllerBase
+public class GroupsController(AppDbContext db, AppClock clock, RankingService ranking) : AppControllerBase
 {
     // Sem 0/O/1/I: o código é digitado à mão a partir de uma mensagem de WhatsApp.
     private const string CodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private const int CodeLength = 6;
-    private const int MaxPeriodDays = 366;
+
+    // Registros retroativos só até 3 dias: sem isso, as sequências seriam triviais de fraudar.
+    private const int MaxBackfillDays = 3;
 
     [HttpGet]
     public async Task<ActionResult<List<GroupSummaryDto>>> Mine(CancellationToken ct)
@@ -26,8 +28,9 @@ public class GroupsController(AppDbContext db, AppClock clock) : AppControllerBa
         return await db.Groups.AsNoTracking()
             .Where(g => g.Members.Any(m => m.UserId == uid))
             .OrderByDescending(g => g.CreatedAt)
-            .Select(g => new GroupSummaryDto(g.Id, g.Name, g.Code, g.StartDate, g.EndDate,
-                g.TrackQuestions, g.TrackCorrect, g.TrackTime, g.Members.Count, g.OwnerId == uid))
+            .Select(g => new GroupSummaryDto(g.Id, g.Name, g.Code,
+                g.TrackQuestions, g.TrackCorrect, g.TrackTime,
+                g.MinDaysPerWeek, g.CreatedAt, g.Members.Count, g.OwnerId == uid))
             .ToListAsync(ct);
     }
 
@@ -38,10 +41,6 @@ public class GroupsController(AppDbContext db, AppClock clock) : AppControllerBa
             return Fail(400, "Escolha pelo menos uma métrica: questões, acertos ou tempo de estudo.");
         if (req.TrackCorrect && !req.TrackQuestions)
             return Fail(400, "Para contar acertos, o grupo também precisa contar questões respondidas.");
-        if (req.EndDate < req.StartDate)
-            return Fail(400, "A data final não pode ser anterior à inicial.");
-        if (req.EndDate.DayNumber - req.StartDate.DayNumber > MaxPeriodDays)
-            return Fail(400, $"O período máximo é de {MaxPeriodDays} dias.");
 
         var uid = UserId;
         for (var attempt = 0; attempt < 5; attempt++)
@@ -50,11 +49,10 @@ public class GroupsController(AppDbContext db, AppClock clock) : AppControllerBa
             {
                 Name = req.Name.Trim(),
                 Code = RandomNumberGenerator.GetString(CodeAlphabet, CodeLength),
-                StartDate = req.StartDate,
-                EndDate = req.EndDate,
                 TrackQuestions = req.TrackQuestions,
                 TrackCorrect = req.TrackCorrect,
                 TrackTime = req.TrackTime,
+                MinDaysPerWeek = req.MinDaysPerWeek,
                 OwnerId = uid,
             };
             group.Members.Add(new Member { UserId = uid, Role = MemberRole.Owner });
@@ -109,63 +107,14 @@ public class GroupsController(AppDbContext db, AppClock clock) : AppControllerBa
         return Ok(new GroupDetailDto(ToSummary(group, members.Count, UserId), members));
     }
 
+    /// <summary>Ranking geral do grupo, com todos os registros desde o início.</summary>
     [HttpGet("{id:guid}/ranking")]
     public async Task<ActionResult<List<RankingEntryDto>>> Ranking(Guid id, CancellationToken ct)
     {
         var group = await FindMyGroup(id, ct);
         if (group is null) return NotFound();
 
-        var members = await db.Members.AsNoTracking()
-            .Where(m => m.GroupId == id)
-            .Select(m => new { m.UserId, m.User.Name })
-            .ToListAsync(ct);
-
-        var totals = (await db.StudyLogs.AsNoTracking()
-                .Where(l => l.GroupId == id)
-                .GroupBy(l => l.UserId)
-                .Select(x => new
-                {
-                    UserId = x.Key,
-                    Questions = x.Sum(l => l.QuestionsAnswered ?? 0),
-                    Correct = x.Sum(l => l.QuestionsCorrect ?? 0),
-                    Minutes = x.Sum(l => l.StudyMinutes ?? 0),
-                })
-                .ToListAsync(ct))
-            .ToDictionary(x => x.UserId);
-
-        var datesByUser = (await db.StudyLogs.AsNoTracking()
-                .Where(l => l.GroupId == id)
-                .Select(l => new { l.UserId, l.Date })
-                .Distinct()
-                .ToListAsync(ct))
-            .GroupBy(x => x.UserId)
-            .ToDictionary(g => g.Key, g => g.Select(x => x.Date).ToHashSet());
-
-        var today = clock.Today();
-
-        var entries = members.Select(m =>
-        {
-            totals.TryGetValue(m.UserId, out var t);
-            datesByUser.TryGetValue(m.UserId, out var dates);
-            dates ??= [];
-
-            int? questions = group.TrackQuestions ? t?.Questions ?? 0 : null;
-            int? correct = group.TrackCorrect ? t?.Correct ?? 0 : null;
-            int? minutes = group.TrackTime ? t?.Minutes ?? 0 : null;
-            double? accuracy = group.TrackCorrect && questions > 0
-                ? Math.Round((double)correct!.Value / questions.Value * 100, 1)
-                : null;
-
-            return new RankingEntryDto(m.UserId, m.Name, questions, correct, accuracy, minutes,
-                dates.Count, CurrentStreak(dates, today));
-        });
-
-        // Ordem padrão: volume de questões; se o grupo não conta questões, tempo de estudo.
-        var ordered = group.TrackQuestions
-            ? entries.OrderByDescending(e => e.TotalQuestions)
-            : entries.OrderByDescending(e => e.TotalMinutes);
-
-        return Ok(ordered.ThenBy(e => e.Name).ToList());
+        return Ok(await ranking.BuildAsync(group, null, null, clock.Today(), ct));
     }
 
     [HttpGet("{id:guid}/logs")]
@@ -182,6 +131,41 @@ public class GroupsController(AppDbContext db, AppClock clock) : AppControllerBa
             .Select(l => new LogDto(l.Id, l.UserId, l.User.Name, l.Date, "/uploads/" + l.PhotoFileName,
                 l.QuestionsAnswered, l.QuestionsCorrect, l.StudyMinutes, l.Subject, l.Note, l.CreatedAt))
             .ToListAsync(ct);
+    }
+
+    /// <summary>Dias com estudo de um membro no mês (AAAA-MM). Sem userId, é o calendário de quem pediu.</summary>
+    [HttpGet("{id:guid}/calendar")]
+    public async Task<ActionResult<List<CalendarDayDto>>> Calendar(
+        Guid id, string month, Guid? userId, CancellationToken ct)
+    {
+        var group = await FindMyGroup(id, ct);
+        if (group is null) return NotFound();
+
+        if (!DateOnly.TryParseExact(month + "-01", "yyyy-MM-dd", out var start))
+            return Fail(400, "Mês inválido. Use o formato AAAA-MM.");
+        var end = start.AddMonths(1);
+
+        // Só dá para ver o calendário de quem é membro deste mesmo grupo (as fotos já estão no feed dele).
+        var target = userId ?? UserId;
+        if (!await db.Members.AnyAsync(m => m.GroupId == id && m.UserId == target, ct))
+            return NotFound();
+
+        var logs = await db.StudyLogs.AsNoTracking()
+            .Where(l => l.GroupId == id && l.UserId == target && l.Date >= start && l.Date < end)
+            .OrderByDescending(l => l.CreatedAt)
+            .Select(l => new { l.Date, l.PhotoFileName, l.QuestionsAnswered, l.StudyMinutes })
+            .ToListAsync(ct);
+
+        return logs
+            .GroupBy(l => l.Date)
+            .OrderBy(g => g.Key)
+            .Select(g => new CalendarDayDto(
+                g.Key,
+                g.Count(),
+                "/uploads/" + g.First().PhotoFileName, // o mais recente do dia (lista já vem ordenada)
+                group.TrackQuestions ? g.Sum(l => l.QuestionsAnswered ?? 0) : null,
+                group.TrackTime ? g.Sum(l => l.StudyMinutes ?? 0) : null))
+            .ToList();
     }
 
     [HttpPost("{id:guid}/logs")]
@@ -239,16 +223,11 @@ public class GroupsController(AppDbContext db, AppClock clock) : AppControllerBa
 
     // ---------- helpers ----------
 
-    // Registros retroativos só até 3 dias: sem isso, o streak seria trivial de fraudar.
-    private const int MaxBackfillDays = 3;
-
     private static string? ValidateLog(Group g, CreateLogForm f, DateOnly today, out DateOnly date)
     {
         date = f.Date ?? today;
 
-        if (today < g.StartDate) return "O desafio ainda não começou.";
         if (date > today) return "Não é possível registrar estudo em data futura.";
-        if (date < g.StartDate || date > g.EndDate) return "A data está fora do período do desafio.";
         if (today.DayNumber - date.DayNumber > MaxBackfillDays)
             return $"Só é possível registrar os últimos {MaxBackfillDays} dias.";
 
@@ -276,19 +255,6 @@ public class GroupsController(AppDbContext db, AppClock clock) : AppControllerBa
         return null;
     }
 
-    /// <summary>Dias seguidos até hoje. Se ainda não estudou hoje, a sequência segue viva a partir de ontem.</summary>
-    private static int CurrentStreak(HashSet<DateOnly> dates, DateOnly today)
-    {
-        var day = dates.Contains(today) ? today : today.AddDays(-1);
-        var streak = 0;
-        while (dates.Contains(day))
-        {
-            streak++;
-            day = day.AddDays(-1);
-        }
-        return streak;
-    }
-
     // Quem não é membro recebe 404 (e não 403): não revela que o grupo existe.
     private Task<Group?> FindMyGroup(Guid id, CancellationToken ct)
     {
@@ -298,8 +264,8 @@ public class GroupsController(AppDbContext db, AppClock clock) : AppControllerBa
     }
 
     private static GroupSummaryDto ToSummary(Group g, int memberCount, Guid uid) =>
-        new(g.Id, g.Name, g.Code, g.StartDate, g.EndDate,
-            g.TrackQuestions, g.TrackCorrect, g.TrackTime, memberCount, g.OwnerId == uid);
+        new(g.Id, g.Name, g.Code, g.TrackQuestions, g.TrackCorrect, g.TrackTime,
+            g.MinDaysPerWeek, g.CreatedAt, memberCount, g.OwnerId == uid);
 
     private static string? NullIfBlank(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 }

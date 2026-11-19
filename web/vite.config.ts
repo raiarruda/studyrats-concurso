@@ -3,6 +3,14 @@ import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// O navegador só fala com este servidor (porta 5173). Ele repassa /api e /uploads para a API,
+// que continua escutando só em localhost. `xfwd` entrega o IP real de cada colega à API,
+// senão o limite de tentativas de login trataria todo mundo como um único cliente (127.0.0.1).
+const apiProxy = {
+  '/api': { target: 'http://localhost:5080', xfwd: true },
+  '/uploads': { target: 'http://localhost:5080', xfwd: true },
+}
+
 export default defineConfig({
   plugins: [
     vue(),
@@ -33,10 +41,7 @@ export default defineConfig({
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
-  server: {
-    proxy: {
-      '/api': 'http://localhost:5080',
-      '/uploads': 'http://localhost:5080',
-    },
-  },
+  // host: true = escuta em todas as interfaces, para os colegas da rede acessarem.
+  server: { host: true, proxy: apiProxy },
+  preview: { host: true, proxy: apiProxy },
 })

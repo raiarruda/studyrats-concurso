@@ -9,6 +9,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Group> Groups => Set<Group>();
     public DbSet<Member> Members => Set<Member>();
     public DbSet<StudyLog> StudyLogs => Set<StudyLog>();
+    public DbSet<Challenge> Challenges => Set<Challenge>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -24,6 +25,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(x => x.Code).IsUnique();
             e.Property(x => x.Name).HasMaxLength(80);
             e.Property(x => x.Code).HasMaxLength(12);
+            e.Property(x => x.MinDaysPerWeek).HasDefaultValue(3);
+            e.ToTable(t => t.HasCheckConstraint("ck_group_min_days", "\"MinDaysPerWeek\" BETWEEN 1 AND 7"));
+        });
+
+        b.Entity<Challenge>(e =>
+        {
+            e.HasIndex(x => x.GroupId);
+            e.Property(x => x.Name).HasMaxLength(80);
+            e.HasOne<Group>().WithMany().HasForeignKey(x => x.GroupId).OnDelete(DeleteBehavior.Cascade);
+            e.ToTable(t => t.HasCheckConstraint("ck_challenge_dates", "\"StartDate\" <= \"ExamDate\""));
         });
 
         b.Entity<Member>(e =>

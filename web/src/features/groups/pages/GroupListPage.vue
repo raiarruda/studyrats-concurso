@@ -2,7 +2,6 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { apiErrorMessage } from '@/shared/utils/apiError'
-import { formatDate } from '@/shared/utils/format'
 import { groupService } from '../services/groupService'
 import type { GroupSummary } from '../types'
 
@@ -74,7 +73,7 @@ onMounted(load)
         <h2 style="margin: 0">{{ g.name }}</h2>
         <span class="muted">{{ g.memberCount }} {{ g.memberCount === 1 ? 'pessoa' : 'pessoas' }}</span>
       </div>
-      <span class="muted">{{ formatDate(g.startDate) }} → {{ formatDate(g.endDate) }}</span>
+      <span class="muted">Semana ativa: {{ g.minDaysPerWeek }} {{ g.minDaysPerWeek === 1 ? 'dia' : 'dias' }} de estudo</span>
       <div class="badges">
         <span v-if="g.trackQuestions" class="badge">Questões</span>
         <span v-if="g.trackCorrect" class="badge">Acertos</span>

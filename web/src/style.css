@@ -99,8 +99,8 @@ a.button {
   background: color-mix(in srgb, var(--primary) 14%, transparent); color: var(--primary); font-weight: 600;
 }
 
-.tabs { display: flex; gap: 4px; margin: 16px 0 12px; border-bottom: 1px solid var(--line); }
-.tabs button { border: 0; border-radius: 10px 10px 0 0; background: none; color: var(--muted); }
+.tabs { display: flex; gap: 2px; margin: 16px 0 12px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tabs button { border: 0; border-radius: 10px 10px 0 0; background: none; color: var(--muted); padding: 10px 12px; white-space: nowrap; }
 .tabs button.active { color: var(--primary); box-shadow: inset 0 -2px 0 var(--primary); }
 
 .code {
@@ -129,3 +129,31 @@ a.button {
   background: linear-gradient(transparent, var(--bg) 40%);
 }
 .fab-bar a.button { display: block; max-width: 608px; margin: 0 auto; }
+
+.period { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; }
+.bar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.bar .fill { height: 100%; background: var(--primary); border-radius: 99px; transition: width 0.3s; }
+
+.challenge-banner { text-decoration: none; color: inherit; }
+.challenge-banner:hover { border-color: var(--primary); }
+
+.cal-title { text-transform: capitalize; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-grid.loading { opacity: 0.5; }
+.cal-wd { text-align: center; font-size: 0.75rem; color: var(--muted); font-weight: 600; }
+.cal-day {
+  position: relative; aspect-ratio: 1; padding: 0; overflow: hidden; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--muted); font-weight: 500;
+}
+.cal-day:disabled { opacity: 1; cursor: default; }
+.cal-day.today { border-color: var(--primary); border-width: 2px; }
+.cal-day.selected { outline: 2px solid var(--primary); outline-offset: 1px; }
+.cal-day img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cal-day .cal-num {
+  position: relative; font-size: 0.75rem; color: var(--text);
+}
+.cal-day.has .cal-num {
+  position: absolute; left: 3px; bottom: 2px; padding: 0 4px; border-radius: 6px;
+  background: rgba(0, 0, 0, 0.6); color: #fff; font-weight: 700;
+}
+.cal-detail .meta { display: flex; gap: 12px; flex-wrap: wrap; font-size: 0.9rem; }

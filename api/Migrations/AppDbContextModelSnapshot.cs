@@ -22,6 +22,39 @@ namespace StudyRats.Api.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("StudyRats.Api.Domain.Challenge", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("ExamDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupId");
+
+                    b.ToTable("Challenges", t =>
+                        {
+                            t.HasCheckConstraint("ck_challenge_dates", "\"StartDate\" <= \"ExamDate\"");
+                        });
+                });
+
             modelBuilder.Entity("StudyRats.Api.Domain.Group", b =>
                 {
                     b.Property<Guid>("Id")
@@ -36,8 +69,10 @@ namespace StudyRats.Api.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateOnly>("EndDate")
-                        .HasColumnType("date");
+                    b.Property<int>("MinDaysPerWeek")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(3);
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -46,9 +81,6 @@ namespace StudyRats.Api.Migrations
 
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("uuid");
-
-                    b.Property<DateOnly>("StartDate")
-                        .HasColumnType("date");
 
                     b.Property<bool>("TrackCorrect")
                         .HasColumnType("boolean");
@@ -64,7 +96,10 @@ namespace StudyRats.Api.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("Groups");
+                    b.ToTable("Groups", t =>
+                        {
+                            t.HasCheckConstraint("ck_group_min_days", "\"MinDaysPerWeek\" BETWEEN 1 AND 7");
+                        });
                 });
 
             modelBuilder.Entity("StudyRats.Api.Domain.Member", b =>
@@ -171,6 +206,15 @@ namespace StudyRats.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("StudyRats.Api.Domain.Challenge", b =>
+                {
+                    b.HasOne("StudyRats.Api.Domain.Group", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("StudyRats.Api.Domain.Member", b =>
